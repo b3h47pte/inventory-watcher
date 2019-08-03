@@ -1,0 +1,9 @@
+namespace sentinel
+{
+
+class ISentinel
+{
+
+};
+
+}
