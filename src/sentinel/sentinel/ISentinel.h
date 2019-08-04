@@ -1,9 +1,0 @@
-namespace sentinel
-{
-
-class ISentinel
-{
-
-};
-
-}

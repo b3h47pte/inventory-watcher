@@ -1,5 +1,6 @@
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <sentinel/Sentinel.h>
 #include <sentinel/VendorFactory.h>
 #include <string>
 
@@ -28,6 +29,14 @@ int main(int argc, char** argv)
     {
         throw std::runtime_error("Failed to find specified item.");
     }
+    std::cout << "FOUND ITEM: " << item->uri() << std::endl;
+
+    sentinel::Sentinel sentinelObj([](const sentinel::ITrackItem& item){
+    });
+    sentinelObj.addTrackedItem(item);
+
+    using namespace std::chrono_literals;
+    sentinelObj.startTrackingItems(500ms, true);
 
     return 0;
 }
