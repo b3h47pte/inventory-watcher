@@ -3,6 +3,7 @@
 #include <include/wrapper/cef_library_loader.h>
 #include "sentinel/backend/URI.h"
 #include <string>
+#include <thread>
 
 namespace sentinel
 {
@@ -15,9 +16,10 @@ public:
     static HTTPBackend& getMutable();
 
     HTTPBackend();
-    ~HTTPBackend();
+    ~HTTPBackend() noexcept(false);
 
     void initialize(int argc, char** argv);
+    void cleanup();
 
     std::string escapeString(const std::string& inStr) const;
 
@@ -25,6 +27,8 @@ public:
 
 private:
     CURL* _curl;
+    std::thread _cefThread;
+    CefScopedLibraryLoader _cefLoader;
 };
 
 }

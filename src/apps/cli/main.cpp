@@ -34,7 +34,9 @@ int main(int argc, char** argv)
     sentinelObj.addTrackedItem(item);
 
     using namespace std::chrono_literals;
+    std::this_thread::sleep_for(1s);
     //sentinelObj.startTrackingItems(500ms, true);
 
+    sentinel::HTTPBackend::getMutable().cleanup();
     return 0;
 }

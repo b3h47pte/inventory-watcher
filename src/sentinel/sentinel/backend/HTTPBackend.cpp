@@ -1,9 +1,13 @@
 #include "sentinel/backend/HTTPBackend.h"
 
+#include <include/base/cef_bind.h>
+#ifdef __APPLE__
+#include <include/cef_application_mac.h>
+#endif
 #include <include/cef_app.h>
 #include <include/cef_client.h>
+#include <include/wrapper/cef_closure_task.h>
 #include <iostream>
-#include <thread>
 
 namespace sentinel
 {
@@ -11,19 +15,33 @@ namespace
 {
 
 // Implement application-level callbacks for the browser process.
-class SimpleApp : public CefApp, public CefBrowserProcessHandler {
+class InternalBrowserApp : public CefApp, public CefBrowserProcessHandler {
 public:
-    SimpleApp() = default;
+    InternalBrowserApp() = default;
 
     // CefApp methods:
-    CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
+    CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override
+    {
         return this;
+    }
+
+    void OnBeforeCommandLineProcessing(
+        const CefString& process_type,
+        CefRefPtr<CefCommandLine> command_line) override
+    {
+        command_line->AppendSwitchWithValue("disable-features", "NetworkService");
     }
 
 private:
     // Include the default reference counting implementation.
-    IMPLEMENT_REFCOUNTING(SimpleApp);
+    IMPLEMENT_REFCOUNTING(InternalBrowserApp);
 };
+
+void
+killCef()
+{
+    CefQuitMessageLoop();
+}
 
 }
 
@@ -61,7 +79,7 @@ HTTPBackend::HTTPBackend()
     _curl = curl_easy_init();
 }
 
-HTTPBackend::~HTTPBackend()
+HTTPBackend::~HTTPBackend() noexcept(false)
 {
     curl_easy_cleanup(_curl);
     curl_global_cleanup();
@@ -70,24 +88,37 @@ HTTPBackend::~HTTPBackend()
 void
 HTTPBackend::initialize(int argc, char** argv)
 {
-    CefScopedLibraryLoader cefLoader;
-    if (!cefLoader.LoadInMain()) {
+    if (!_cefLoader.LoadInMain()) {
         throw std::runtime_error("Failed to load CEF.");
     }
 
-    // Initialize CEF.
-    CefMainArgs mainArgs(argc, argv);
-    CefRefPtr<SimpleApp> cefApp(new SimpleApp);
+    _cefThread = std::thread([argc, argv](){
+        // Initialize CEF.
+        CefMainArgs mainArgs(argc, argv);
+        CefRefPtr<InternalBrowserApp> cefApp(new InternalBrowserApp);
 
-    CefSettings cefSettings;
-    cefSettings.command_line_args_disabled = true;
-    cefSettings.windowless_rendering_enabled = true;
+        CefSettings cefSettings;
+        cefSettings.command_line_args_disabled = true;
+        cefSettings.windowless_rendering_enabled = true;
 #ifndef CEF_USE_SANDBOX
-    settings.no_sandbox = true;
+        cefSettings.no_sandbox = true;
 #endif
+        if (CefExecuteProcess(mainArgs, cefApp.get(), nullptr) >= 0) {
+            return;
+        }
 
-    CefInitialize(mainArgs, cefSettings, cefApp.get(), nullptr);
-    CefShutdown();
+        CefInitialize(mainArgs, cefSettings, cefApp.get(), nullptr);
+        CefRunMessageLoop(); 
+        CefShutdown();
+    });
+}
+
+void
+HTTPBackend::cleanup()
+{
+    // Shutdown CEF.
+    CefPostTask(TID_UI, base::Bind(&killCef));
+    _cefThread.join();
 }
 
 }
