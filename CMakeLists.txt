@@ -27,23 +27,33 @@ FIND_PACKAGE(CEF REQUIRED)
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(Gumbo REQUIRED IMPORTED_TARGET gumbo)
 
-MACRO(INSTALL_TARGET_APP TARGET)
+MACRO(INSTALL_TARGET_APP TARGET RESOURCES RESOURCE_PREFIX)
     IF(APPLE)
+        INSTALL(TARGETS ${TARGET}_Helper
+                BUNDLE DESTINATION bin)
         INSTALL(TARGETS ${TARGET}
                 BUNDLE DESTINATION bin)
 
         SET(${TARGET}_APP_DIR "${CMAKE_INSTALL_PREFIX}/bin/${TARGET}.app")
+
+        ADD_CUSTOM_TARGET(${TARGET}_PROXY ALL)
         ADD_CUSTOM_COMMAND(
-            TARGET ${TARGET}
+            TARGET ${TARGET}_PROXY
             POST_BUILD
+            # Copy the helper app bundle into the Frameworks directory.
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${CMAKE_INSTALL_PREFIX}/bin/${TARGET} Helper (GPU).app"
+                    "${${TARGET}_APP_DIR}/Contents/Frameworks/${TARGET} Helper (GPU).app"
             # Copy the CEF framework into the Frameworks directory.
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework"
                     "${${TARGET}_APP_DIR}/Contents/Frameworks/Chromium Embedded Framework.framework"
             VERBATIM
         )
-    ENDIF()
 
+        COPY_MACOSX_RESOURCES("${RESOURCES}" "${RESOURCE_PREFIX}" "${TARGET}" "${CMAKE_CURRENT_SOURCE_DIR}" "${${TARGET}_APP_DIR}")
+
+    ENDIF()
 ENDMACRO()
 
 ADD_SUBDIRECTORY(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
