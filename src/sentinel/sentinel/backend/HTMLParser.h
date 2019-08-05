@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/algorithm/string.hpp>
 #include <functional>
 #include <string>
 #include <gumbo.h>
@@ -47,31 +48,38 @@ HTMLParser::dfsSearchWithContextHelper(
     TContext& context,
     const std::function<bool(GumboNode* node, TContext& context)>& functor) const
 {
-    if (node->type != GUMBO_NODE_ELEMENT) {
-        return false;
-    }
-
     const bool done = functor(node, context);
     if (done) {
         return true;
     }
 
-    GumboVector* children = &node->v.element.children;
-    for (auto i = 0; i < children->length; ++i) {
-        // Need to make a copy so if we find a node in one subtree, we don't
-        // believe that another subtree found that node.
-        TContext childContext = context;
-        if (dfsSearchWithContextHelper(
-                static_cast<GumboNode*>(children->data[i]),
-                childContext,
-                functor)) {
+    if (node->type == GUMBO_NODE_ELEMENT) {
+        GumboVector* children = &node->v.element.children;
+        for (size_t i = 0; i < children->length; ++i) {
+            // Need to make a copy so if we find a node in one subtree, we don't
+            // believe that another subtree found that node.
+            TContext childContext = context;
+            if (dfsSearchWithContextHelper(
+                    static_cast<GumboNode*>(children->data[i]),
+                    childContext,
+                    functor)) {
 
-            context = childContext;
-            return true;
+                context = childContext;
+                return true;
+            }
         }
     }
 
     return false;
+}
+
+inline
+std::string
+createStringAttr(const char* val)
+{
+    std::string ret(val);
+    boost::algorithm::trim(ret);
+    return ret;
 }
 
 }

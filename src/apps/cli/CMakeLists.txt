@@ -1,8 +1,14 @@
-ADD_EXECUTABLE(watchercli main.cpp)
+IF(APPLE)
+    ADD_EXECUTABLE(watchercli MACOSX_BUNDLE main.cpp)
+ENDIF()
+SET_EXECUTABLE_TARGET_PROPERTIES(watchercli)
+ADD_DEPENDENCIES(watchercli libcef_dll_wrapper)
 
-TARGET_LINK_LIBRARIES(watchercli messenger sentinel ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(watchercli messenger sentinel ${Boost_LIBRARIES} ${CEF_STANDARD_LIBS})
+
 TARGET_INCLUDE_DIRECTORIES(watchercli PRIVATE 
     $<TARGET_PROPERTY:sentinel,INTERFACE_INCLUDE_DIRECTORIES>
-    ${Boost_INCLUDE_DIRS})
-INSTALL(TARGETS watchercli
-        RUNTIME DESTINATION bin)
+    ${Boost_INCLUDE_DIRS}
+    libcef_dll_wrapper
+    ${CEF_STANDARD_LIBS})
+INSTALL_TARGET_APP(watchercli)

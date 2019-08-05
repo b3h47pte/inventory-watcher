@@ -16,12 +16,22 @@ public:
     bool isValid() const override { return _valid; }
     std::string uri() const override { return _url; }
     std::string name() const override { return _name; }
+    InventoryStock stock() const override { return _stock; }
 
 private:
+
+    struct UpdateOptions
+    {
+        bool updateName{false};
+        bool updateStock{false};
+    };
+
+    void internalUpdate(const UpdateOptions& options);
+
     bool _valid{false};
     std::string _url;
     std::string _name;
-
+    InventoryStock _stock;
 };
 
 }

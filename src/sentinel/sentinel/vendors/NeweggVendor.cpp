@@ -1,6 +1,7 @@
 #include "sentinel/vendors/NeweggVendor.h"
 
 #include <boost/algorithm/string.hpp>
+#include "sentinel/backend/Constants.h"
 #include "sentinel/backend/HTMLParser.h"
 #include "sentinel/backend/HTTPBackend.h"
 #include "sentinel/vendors/NeweggTrackItem.h"
@@ -10,10 +11,6 @@
 
 namespace sentinel
 {
-namespace
-{
-const std::string kNeweggURI = "www.newegg.com";
-}
 
 ITrackItemPtr
 NeweggVendor::findItemFromName(const std::string& name) const
@@ -27,8 +24,8 @@ NeweggVendor::findItemUrlFromSearchQuery(const std::string& query) const
 {
     // Do a GET request to perform a search for the given query.
     std::ostringstream target;
-    target << "/p/pl?d=" << HTTPBackend::get().escapeString(query);
-    const std::string result = HTTPBackend::get().performGETRequestSSL(kNeweggURI, target.str());
+    target << "https://" << kNeweggURI << "/p/pl?d=" << HTTPBackend::get().escapeString(query);
+    const std::string result = HTTPBackend::get().requestHTMLFromUri(target.str());
     
     // Find the first item returned by parsing the returned HTML.
     // First, find the div with class "list-wrap" then look for the first
@@ -44,43 +41,41 @@ NeweggVendor::findItemUrlFromSearchQuery(const std::string& query) const
         std::string itemUrl;
     };
 
-    auto createStringAttr = [](const char* val){
-        std::string ret(val);
-        boost::algorithm::trim(ret);
-        return ret;
-    };
-
     NeweggParseContext ctxt;
-    parser.dfsSearchWithContext<NeweggParseContext>(ctxt, [&createStringAttr](GumboNode* node, NeweggParseContext& ctxt) -> bool {
-        GumboAttribute* attr;
+    parser.dfsSearchWithContext<NeweggParseContext>(ctxt, [](GumboNode* node, NeweggParseContext& ctxt) -> bool {
+        if (node->type != GUMBO_NODE_ELEMENT) {
+            return false;
+        }
+
+        GumboAttribute* attr = gumbo_get_attribute(&node->v.element.attributes, "class");
+        if (!attr) {
+            return false;
+        }
+
         if (!ctxt.foundListWrap) {
             // Look for a div with class "list-wrap".
-            if (node->v.element.tag == GUMBO_TAG_DIV &&
-                    (attr = gumbo_get_attribute(&node->v.element.attributes, "class"))) {
+            if (node->v.element.tag == GUMBO_TAG_DIV) {
                 if (createStringAttr(attr->value) == "list-wrap") {
                     ctxt.foundListWrap = true;
                 }
             }
         } else if (!ctxt.foundItemContainer) {
-            if (node->v.element.tag == GUMBO_TAG_DIV &&
-                    (attr = gumbo_get_attribute(&node->v.element.attributes, "class"))) {
+            if (node->v.element.tag == GUMBO_TAG_DIV) {
                 if (createStringAttr(attr->value) == "item-container") {
                     ctxt.foundItemContainer = true;
                 }
             }
         } else if (!ctxt.foundItem) {
-            if (node->v.element.tag == GUMBO_TAG_DIV &&
-                    (attr = gumbo_get_attribute(&node->v.element.attributes, "class"))) {
+            if (node->v.element.tag == GUMBO_TAG_DIV) {
                 if (createStringAttr(attr->value) == "item-info") {
                     ctxt.foundItem = true;
                 }
             }
         } else {
-            if (node->v.element.tag == GUMBO_TAG_A &&
-                    (attr = gumbo_get_attribute(&node->v.element.attributes, "class"))) {
+            if (node->v.element.tag == GUMBO_TAG_A) {
                 if (createStringAttr(attr->value) == "item-title") {
                     attr = gumbo_get_attribute(&node->v.element.attributes, "href");
-                    ctxt.itemUrl = attr->value;
+                    ctxt.itemUrl = createStringAttr(attr->value);
                     return true;
                 }
             }

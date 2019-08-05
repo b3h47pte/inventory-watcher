@@ -1,5 +1,7 @@
 #include "sentinel/Sentinel.h"
 
+#include <iostream>
+
 namespace sentinel
 {
 
@@ -12,6 +14,11 @@ void
 Sentinel::addTrackedItem(const ITrackItemPtr& item)
 {
     item->staticUpdate();
+
+    if (!item->isValid()) {
+        std::cerr << "Invalid item ignored: " << item->uri() << std::endl;
+        return;
+    }
     std::scoped_lock<std::shared_mutex> lock(_itemMutex);
     _items.push_back(item);
 }

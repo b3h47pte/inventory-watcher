@@ -19,8 +19,7 @@ VendorFactory::createFromString(const std::string& vendor) const
     std::transform(normalizedString.begin(), normalizedString.end(), normalizedString.end(), ::tolower);
     boost::algorithm::trim(normalizedString);
 
-    if (normalizedString == kNeweggToken)
-    {
+    if (normalizedString == kNeweggToken) {
         return std::make_shared<NeweggVendor>(); 
     }
 
