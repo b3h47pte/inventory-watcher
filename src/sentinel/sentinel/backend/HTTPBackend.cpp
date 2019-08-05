@@ -223,6 +223,7 @@ HTTPBackend::initialize(int argc, char** argv)
 #ifndef CEF_USE_SANDBOX
     cefSettings.no_sandbox = true;
 #endif
+    cefSettings.log_severity = LOGSEVERITY_ERROR;
     if (CefExecuteProcess(mainArgs, cefApp.get(), nullptr) >= 0) {
         return;
     }
