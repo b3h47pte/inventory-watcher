@@ -2,6 +2,7 @@
 #include "sentinel/backend/Constants.h"
 #include "sentinel/backend/HTMLParser.h"
 #include "sentinel/backend/HTTPBackend.h"
+#include "sentinel/StringUtility.h"
 
 #include <iostream>
 
@@ -71,18 +72,22 @@ NeweggTrackItem::internalUpdate(const UpdateOptions& options)
                     if (itemProp && createStringAttr(itemProp->value) == "name") {
                         ctxt.foundNameContainer = true;
                     } else if (idAttr && createStringAttr(idAttr->value) == "landingpage-stock") {
-                        std::cout << "found stock container: " << std::endl;
                         ctxt.foundStockContainer = true;
                     }
                 }
             } else if (node->type == GUMBO_NODE_TEXT) {
-                std::cout << "TEXT: " << node->v.text.text << std::endl;
                 if (ctxt.foundNameContainer && options.updateName) {
                     _name = createStringAttr(node->v.text.text);
                     ctxt.foundName = true;
                 } else if (ctxt.foundStockContainer && options.updateStock) {
-                    const std::string stockText = createStringAttr(node->v.text.text);
-                    std::cout << "STOCK: " << stockText << std::endl;
+                    const std::string stockText = normalizeString(createStringAttr(node->v.text.text));
+                    if (stockText.find("out of stock") != std::string::npos) {
+                        _stock =  InventoryStock::OutStock;
+                    } else {
+                        _stock =  InventoryStock::InStock;
+                    }
+
+                    ctxt.foundStock = true;
                 }
             }
 
@@ -93,4 +98,14 @@ NeweggTrackItem::internalUpdate(const UpdateOptions& options)
         _valid = false;
     }
 }
+
+void
+NeweggTrackItem::print(std::ostream& out) const
+{
+    out << "NEWEGG TRACKED ITEM" << std::endl;
+    out << "\tName: " << _name << std::endl;
+    out << "\tUrl : " << _url << std::endl;
+    out << "\tStock : " << _stock << std::endl;
+}
+
 }

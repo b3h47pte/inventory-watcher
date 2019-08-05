@@ -17,6 +17,7 @@ public:
     std::string uri() const override { return _url; }
     std::string name() const override { return _name; }
     InventoryStock stock() const override { return _stock; }
+    void print(std::ostream& out) const override;
 
 private:
 

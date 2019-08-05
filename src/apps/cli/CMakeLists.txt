@@ -3,7 +3,7 @@ SET(RESOURCE_PREFIX "")
 IF(APPLE)
     SET(RESOURCES
         mac/Info.plist
-        mac/cefsimple.icns
+        mac/watchercli.icns
         mac/English.lproj/InfoPlist.strings
         mac/English.lproj/MainMenu.xib)
     SET(RESOURCE_PREFIX "mac/")

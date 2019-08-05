@@ -15,6 +15,8 @@ public:
     const std::string& host() const { return _host; }
     const std::string& path() const { return _path; }
 
+    std::string uri() const;
+
 private:
     void parseURI(const std::string& uri);
 

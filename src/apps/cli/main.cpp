@@ -9,34 +9,37 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
-    sentinel::HTTPBackend::getMutable().initialize(argc, argv);
+    // Separate thread that deals with work as we'll block on CEF
+    // when the HTTPBackend becomes initialized.
+    std::thread workThread([argc, argv](){
+        po::options_description desc("Inventory Watcher CLI");
+        desc.add_options()
+            ("vendor", po::value<std::string>()->required(), "Which vendor to use to find the item.")
+            ("item", po::value<std::string>(), "Which item to find on the vendor.");
 
-    po::options_description desc("Inventory Watcher CLI");
-    desc.add_options()
-        ("vendor", po::value<std::string>()->required(), "Which vendor to use to find the item.")
-        ("item", po::value<std::string>(), "Which item to find on the vendor.");
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
+        sentinel::Sentinel sentinelObj([](const sentinel::ITrackItem& item){
+            std::cout << item << std::endl;
+        });
 
-    sentinel::Sentinel sentinelObj([](const sentinel::ITrackItem& item){
+        sentinel::VendorFactory factory;
+        const sentinel::IVendorPtr vendor = factory.createFromString(vm["vendor"].as<std::string>());
+        if (!vendor) {
+            throw std::runtime_error("Failed to find specified vendor.");
+        }
+        std::cout << "SELECTED VENDOR: " << vendor->name() << std::endl;
+        const sentinel::ITrackItemPtr item = vendor->findItemFromName(vm["item"].as<std::string>());
+        std::cout << "FOUND ITEM: " << item->uri() << std::endl;
+        sentinelObj.addTrackedItem(item);
+
+        using namespace std::chrono_literals;
+        sentinelObj.startTrackingItems(500ms, true);
     });
 
-    sentinel::VendorFactory factory;
-    const sentinel::IVendorPtr vendor = factory.createFromString(vm["vendor"].as<std::string>());
-    if (!vendor) {
-        throw std::runtime_error("Failed to find specified vendor.");
-    }
-    std::cout << "SELECTED VENDOR: " << vendor->name() << std::endl;
-    const sentinel::ITrackItemPtr item = vendor->findItemFromName(vm["item"].as<std::string>());
-    std::cout << "FOUND ITEM: " << item->uri() << std::endl;
-    sentinelObj.addTrackedItem(item);
-
-    using namespace std::chrono_literals;
-    std::this_thread::sleep_for(1s);
-    //sentinelObj.startTrackingItems(500ms, true);
-
-    sentinel::HTTPBackend::getMutable().cleanup();
+    sentinel::HTTPBackend::getMutable().initialize(argc, argv);
+    workThread.join();
     return 0;
 }

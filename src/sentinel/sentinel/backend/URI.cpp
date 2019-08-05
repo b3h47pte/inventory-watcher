@@ -1,6 +1,6 @@
 #include "sentinel/backend/URI.h"
 
-#include <iostream>
+#include <sstream>
 
 namespace sentinel
 {
@@ -32,6 +32,14 @@ URI::parseURI(const std::string& uri)
     const auto pathStart = (hostEnd != std::string::npos) ? hostEnd : std::string::npos;
     _path = (pathStart != std::string::npos) ?
         uri.substr(pathStart) : "/";
+}
+
+std::string
+URI::uri() const
+{
+    std::ostringstream st;
+    st << _protocol << "://" << _host << _path;
+    return st.str();
 }
 
 }

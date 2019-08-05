@@ -1,6 +1,8 @@
 #pragma once
+#include <condition_variable>
 #include <curl/curl.h>
 #include <include/wrapper/cef_library_loader.h>
+#include <future>
 #include "sentinel/backend/URI.h"
 #include <string>
 #include <thread>
@@ -16,10 +18,9 @@ public:
     static HTTPBackend& getMutable();
 
     HTTPBackend();
-    ~HTTPBackend() noexcept(false);
+    ~HTTPBackend();
 
     void initialize(int argc, char** argv);
-    void cleanup();
 
     std::string escapeString(const std::string& inStr) const;
 
@@ -27,8 +28,10 @@ public:
 
 private:
     CURL* _curl;
-    std::thread _cefThread;
     CefScopedLibraryLoader _cefLoader;
+
+    mutable std::condition_variable _readyCv;
+    bool _ready{false};
 };
 
 }
