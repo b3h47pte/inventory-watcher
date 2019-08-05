@@ -36,7 +36,7 @@ int main(int argc, char** argv)
         sentinelObj.addTrackedItem(item);
 
         using namespace std::chrono_literals;
-        sentinelObj.startTrackingItems(1m, true);
+        sentinelObj.startTrackingItems(1min, true);
     });
 
     sentinel::HTTPBackend::getMutable().initialize(argc, argv);
