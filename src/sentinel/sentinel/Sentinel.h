@@ -1,4 +1,5 @@
 #pragma once
+#include "sentinel/IVendorFwd.h"
 #include "sentinel/TrackItem.h"
 
 #include <chrono>
@@ -14,7 +15,7 @@ namespace sentinel
 class Sentinel
 {
 public:
-    using UpdateFunctor = std::function<bool(const TrackItem&, bool)>;
+    using UpdateFunctor = std::function<bool(const TrackItemPtr&, const IVendorPtr&, bool)>;
 
     Sentinel(const UpdateFunctor& updateFunctor);
 

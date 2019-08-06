@@ -193,4 +193,10 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
     item->update(update);
 }
 
+void
+NeweggVendor::checkout(const TrackItemPtr& item) const
+{
+
+}
+
 }

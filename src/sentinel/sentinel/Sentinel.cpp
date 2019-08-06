@@ -50,7 +50,10 @@ Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs)
             for (size_t i = 0; i < _items.size(); ++i) {
                 const auto& itemVendor = _items[i];
                 itemVendor.second->updateItem(itemVendor.first, false);
-                const bool needsRemove = _updateFunctor(*itemVendor.first, isFirst);
+                const bool needsRemove = _updateFunctor(
+                    itemVendor.first,
+                    itemVendor.second,
+                    isFirst);
                 if (needsRemove) {
                     indicesToRemove.push_back(i);
                 }

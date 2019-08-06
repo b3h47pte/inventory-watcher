@@ -18,6 +18,7 @@ public:
 
     virtual TrackItemPtr findItemFromName(const std::string& name) const = 0;
     virtual void updateItem(const TrackItemPtr& item, bool staticUpdate) const = 0;
+    virtual void checkout(const TrackItemPtr& item) const = 0;
 };
 
 }

@@ -40,19 +40,25 @@ int main(int argc, char** argv)
             messengers.addSMSMessenger(messenger::PhoneNumber(sms));
         }
 
-        sentinel::Sentinel sentinelObj([&messengers](const sentinel::TrackItem& item, bool isFirst){
-            if (!isFirst && !item.changedSinceLastUpdate()) {
-                std::cout << "Skipping item: " << item.name() << std::endl;
+        sentinel::Sentinel sentinelObj([&messengers](const sentinel::TrackItemPtr& item, const sentinel::IVendorPtr& vendor, bool isFirst){
+            if (!isFirst && !item->changedSinceLastUpdate()) {
+                std::cout << "Skipping item: " << item->name() << std::endl;
                 return false;
             }
 
             std::ostringstream msg;
-            msg << item;
+            msg << *item;
 
             std::ostringstream shortMsg;
-            shortMsg << item.name() << "(" << item.stock() << ")";
+            shortMsg << item->name() << "(" << item->stock() << ")";
             messengers.notify(msg.str(), shortMsg.str());
-            std::cout << item << std::endl;
+            std::cout << *item << std::endl;
+
+            if (item->stock() == sentinel::InventoryStock::InStock) {
+                vendor->checkout(item);
+                return true;
+            }
+
             return false;
         });
 
