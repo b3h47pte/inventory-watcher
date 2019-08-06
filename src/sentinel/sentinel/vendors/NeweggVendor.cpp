@@ -1,10 +1,10 @@
 #include "sentinel/vendors/NeweggVendor.h"
 
 #include <boost/algorithm/string.hpp>
+#include "core/StringUtility.h"
 #include "sentinel/backend/Constants.h"
 #include "sentinel/backend/HTMLParser.h"
 #include "sentinel/backend/HTTPBackend.h"
-#include "sentinel/vendors/NeweggTrackItem.h"
 #include <sstream>
 
 #include <iostream>
@@ -12,11 +12,13 @@
 namespace sentinel
 {
 
-ITrackItemPtr
+TrackItemPtr
 NeweggVendor::findItemFromName(const std::string& name) const
 {
     const std::string itemUrl = findItemUrlFromSearchQuery(name);
-    return std::make_shared<NeweggTrackItem>(itemUrl);
+    auto item = std::make_shared<TrackItem>(itemUrl, source());
+    updateItem(item, true);
+    return item;
 }
 
 std::string
@@ -87,6 +89,105 @@ NeweggVendor::findItemUrlFromSearchQuery(const std::string& query) const
 
     // Return the item's URL.
     return ctxt.itemUrl;
+}
+
+void
+NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
+{
+    if (item->vendor() != source()) {
+        std::cerr << "Can not update item " << item->name() << "since it comes from "
+                     "a different source" << std::endl;
+        return;
+    }
+
+    TrackItemUpdate update;
+    update.valid  = true;
+    update.changed = false;
+    
+    struct UpdateOptions
+    {
+        bool updateName{false};
+        bool updateStock{false};
+    };
+    UpdateOptions options;
+    options.updateName = staticUpdate;
+    options.updateStock = true;
+
+    try {
+        const std::string result = HTTPBackend::get().requestHTMLFromUri(item->uri());
+        
+        const HTMLParser parser(result);
+
+        struct NeweggParseContext
+        {
+            bool foundBox{false};
+            bool foundNameContainer{false};
+            bool foundStockContainer{false};
+
+            bool foundName{false};
+            bool foundStock{false};
+        };
+
+        NeweggParseContext ctxt;
+        parser.dfsSearchWithContext<NeweggParseContext>(ctxt, [&update, &options](GumboNode* node, NeweggParseContext& ctxt) -> bool {
+            GumboAttribute* classAttr = nullptr;
+            GumboAttribute* idAttr = nullptr;
+            GumboAttribute* itemProp = nullptr; 
+
+            if (node->type == GUMBO_NODE_ELEMENT) {
+                classAttr = gumbo_get_attribute(&node->v.element.attributes, "class");
+                idAttr = gumbo_get_attribute(&node->v.element.attributes, "id");
+                itemProp = gumbo_get_attribute(&node->v.element.attributes, "itemprop");
+
+                if (!ctxt.foundBox) {
+                    if (classAttr && 
+                            node->v.element.tag == GUMBO_TAG_DIV && 
+                            createStringAttr(classAttr->value) == "grpArticle") {
+                        ctxt.foundBox = true;
+                    }
+                } else {
+                    if (itemProp && createStringAttr(itemProp->value) == "name") {
+                        ctxt.foundNameContainer = true;
+                    } else if (idAttr && createStringAttr(idAttr->value) == "landingpage-stock") {
+                        ctxt.foundStockContainer = true;
+                    }
+                }
+            } else if (node->type == GUMBO_NODE_TEXT) {
+                if (ctxt.foundNameContainer && options.updateName) {
+                    const std::string tmpName = createStringAttr(node->v.text.text);
+                    update.changed = 
+                        update.changed.value() ||
+                            !update.name.has_value() ||
+                            (tmpName != update.name.value());
+                    update.name = tmpName;
+                    ctxt.foundName = true;
+                } else if (ctxt.foundStockContainer && options.updateStock) {
+                    const std::string stockText = core::normalizeString(createStringAttr(node->v.text.text));
+
+                    InventoryStock tmpStock;
+                    if (stockText.find("out of stock") != std::string::npos) {
+                        tmpStock =  InventoryStock::OutStock;
+                    } else {
+                        tmpStock =  InventoryStock::InStock;
+                    }
+                    update.changed = 
+                        update.changed.value() ||
+                            !update.stock.has_value() ||
+                            (tmpStock != update.stock.value());
+                    update.stock = tmpStock;
+                    ctxt.foundStock = true;
+                }
+            }
+
+            return (ctxt.foundName || !options.updateName) && (ctxt.foundStock || !options.updateStock);
+        });
+    } catch (const std::exception& ex) {
+        std::cerr << "Failed to update tracked item." << std::endl;
+        std::cerr << "\t" << ex.what() << std::endl;
+        update.valid = false;
+        update.changed = false;
+    }
+    item->update(update);
 }
 
 }

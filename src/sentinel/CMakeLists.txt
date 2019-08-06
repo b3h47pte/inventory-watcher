@@ -1,12 +1,12 @@
 ADD_LIBRARY(sentinel SHARED
     sentinel/Sentinel.cpp
+    sentinel/TrackItem.cpp
     sentinel/VendorFactory.cpp
     sentinel/backend/Constants.cpp
     sentinel/backend/HTTPBackend.cpp
     sentinel/backend/HTMLParser.cpp
     sentinel/backend/URI.cpp
-    sentinel/vendors/NeweggVendor.cpp
-    sentinel/vendors/NeweggTrackItem.cpp)
+    sentinel/vendors/NeweggVendor.cpp)
 
 SET_LIBRARY_TARGET_PROPERTIES(sentinel)
 ADD_DEPENDENCIES(sentinel libcef_dll_wrapper)

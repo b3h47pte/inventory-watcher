@@ -22,8 +22,10 @@ int main(int argc, char** argv)
             ("interval", po::value<size_t>()->default_value(15), "Refresh interval in seconds.")
             ("vendor", po::value<std::vector<std::string>>()->required(), "Which vendor(s) to use to find the item.")
             ("item", po::value<std::string>(), "Which item to find on the vendor(s).")
-            ("email", po::value<std::vector<std::string>>(), "Email addresses to notify.")
-            ("sms", po::value<std::vector<std::string>>(), "Numbers to notify.");
+            ("email", po::value<std::vector<std::string>>()->default_value(
+                std::vector<std::string>(), ""), "Email addresses to notify.")
+            ("sms", po::value<std::vector<std::string>>()->default_value(
+                std::vector<std::string>(), ""), "Numbers to notify.");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -38,7 +40,7 @@ int main(int argc, char** argv)
             messengers.addSMSMessenger(messenger::PhoneNumber(sms));
         }
 
-        sentinel::Sentinel sentinelObj([&messengers](const sentinel::ITrackItem& item, bool isFirst){
+        sentinel::Sentinel sentinelObj([&messengers](const sentinel::TrackItem& item, bool isFirst){
             if (!isFirst && !item.changedSinceLastUpdate()) {
                 std::cout << "Skipping item: " << item.name() << std::endl;
                 return;
@@ -60,9 +62,12 @@ int main(int argc, char** argv)
                 throw std::runtime_error("Failed to find specified vendor.");
             }
             std::cout << "SELECTED VENDOR: " << vendor->name() << std::endl;
-            const sentinel::ITrackItemPtr item = vendor->findItemFromName(vm["item"].as<std::string>());
+            const sentinel::TrackItemPtr item = vendor->findItemFromName(vm["item"].as<std::string>());
+            if (!item || !item->isValid()) {
+                throw std::runtime_error("Failed to find item.");
+            }
             std::cout << "FOUND ITEM: " << item->uri() << std::endl;
-            sentinelObj.addTrackedItem(item);
+            sentinelObj.addTrackedItem(item, vendor);
             std::cout << *item << std::endl;
         }
 

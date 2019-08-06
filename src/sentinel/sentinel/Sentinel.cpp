@@ -1,6 +1,7 @@
 #include "sentinel/Sentinel.h"
 
 #include <iostream>
+#include "sentinel/IVendor.h"
 
 namespace sentinel
 {
@@ -11,16 +12,14 @@ Sentinel::Sentinel(const UpdateFunctor& updateFunctor):
 }
 
 void
-Sentinel::addTrackedItem(const ITrackItemPtr& item)
+Sentinel::addTrackedItem(const TrackItemPtr& item, const IVendorPtr& vendor)
 {
-    item->staticUpdate();
-
     if (!item->isValid()) {
         std::cerr << "Invalid item ignored: " << item->uri() << std::endl;
         return;
     }
     std::scoped_lock<std::shared_mutex> lock(_itemMutex);
-    _items.push_back(item);
+    _items.push_back(std::make_pair(item, vendor));
 }
 
 void
@@ -45,10 +44,10 @@ Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs) const
     while (true) {
         const auto start = std::chrono::steady_clock::now();
 
-        for (const auto& item : _items)
+        for (const auto& itemVendor : _items)
         {
-            item->update();
-            _updateFunctor(*item, isFirst);
+            itemVendor.second->updateItem(itemVendor.first, false);
+            _updateFunctor(*itemVendor.first, isFirst);
         }
 
         const auto end = std::chrono::steady_clock::now();

@@ -11,8 +11,10 @@ public:
     virtual ~NeweggVendor() = default;
 
     std::string name() const override { return "Newegg"; }
+    VendorSource source() const override { return VendorSource::Newegg; }
+    void updateItem(const TrackItemPtr& item, bool staticUpdate) const override;
 
-    ITrackItemPtr findItemFromName(const std::string& name) const override;
+    TrackItemPtr findItemFromName(const std::string& name) const override;
 
 private:
     std::string findItemUrlFromSearchQuery(const std::string& query) const;
