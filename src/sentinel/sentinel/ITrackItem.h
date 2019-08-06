@@ -21,6 +21,7 @@ public:
     virtual void update() = 0;
 
     virtual bool isValid() const = 0;
+    virtual bool changedSinceLastUpdate() const = 0;
     virtual std::string uri() const = 0;
     virtual std::string name() const = 0;
     virtual InventoryStock stock() const = 0;

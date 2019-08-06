@@ -1,7 +1,9 @@
 ADD_LIBRARY(messenger SHARED
     messenger/MessengerContainer.cpp
     messenger/backend/SMTPClient.cpp
-    messenger/channels/EmailMessenger.cpp)
+    messenger/channels/EmailMessenger.cpp
+    messenger/channels/SMSMessenger.cpp
+    messenger/channels/PhoneNumber.cpp)
 
 TARGET_INCLUDE_DIRECTORIES(messenger PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}

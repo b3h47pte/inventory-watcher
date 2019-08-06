@@ -41,13 +41,14 @@ Sentinel::startTrackingItems(const std::chrono::milliseconds& updateIntervalMs, 
 void
 Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs) const
 {
+    bool isFirst = true;
     while (true) {
         const auto start = std::chrono::steady_clock::now();
 
         for (const auto& item : _items)
         {
             item->update();
-            _updateFunctor(*item);
+            _updateFunctor(*item, isFirst);
         }
 
         const auto end = std::chrono::steady_clock::now();
@@ -56,6 +57,8 @@ Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs) const
         if (elapsedMs < updateIntervalMs) {
             std::this_thread::sleep_for(updateIntervalMs - elapsedMs);
         }
+
+        isFirst = false;
     }
 }
 

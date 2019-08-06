@@ -1,8 +1,9 @@
 #include "sentinel/vendors/NeweggTrackItem.h"
+
+#include "core/StringUtility.h"
 #include "sentinel/backend/Constants.h"
 #include "sentinel/backend/HTMLParser.h"
 #include "sentinel/backend/HTTPBackend.h"
-#include "sentinel/StringUtility.h"
 
 #include <iostream>
 
@@ -36,6 +37,8 @@ void
 NeweggTrackItem::internalUpdate(const UpdateOptions& options)
 {
     _valid = true;
+    _changed = false;
+
     try {
         const std::string result = HTTPBackend::get().requestHTMLFromUri(_url);
         
@@ -77,16 +80,21 @@ NeweggTrackItem::internalUpdate(const UpdateOptions& options)
                 }
             } else if (node->type == GUMBO_NODE_TEXT) {
                 if (ctxt.foundNameContainer && options.updateName) {
-                    _name = createStringAttr(node->v.text.text);
+                    const std::string tmpName = createStringAttr(node->v.text.text);
+                    _changed |= (tmpName != _name);
+                    _name = tmpName;
                     ctxt.foundName = true;
                 } else if (ctxt.foundStockContainer && options.updateStock) {
-                    const std::string stockText = normalizeString(createStringAttr(node->v.text.text));
-                    if (stockText.find("out of stock") != std::string::npos) {
-                        _stock =  InventoryStock::OutStock;
-                    } else {
-                        _stock =  InventoryStock::InStock;
-                    }
+                    const std::string stockText = core::normalizeString(createStringAttr(node->v.text.text));
 
+                    InventoryStock tmpStock;
+                    if (stockText.find("out of stock") != std::string::npos) {
+                        tmpStock =  InventoryStock::OutStock;
+                    } else {
+                        tmpStock =  InventoryStock::InStock;
+                    }
+                    _changed |= (tmpStock != _stock);
+                    _stock = tmpStock;
                     ctxt.foundStock = true;
                 }
             }

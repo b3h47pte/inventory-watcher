@@ -1,3 +1,4 @@
+#pragma once
 #include "messenger/IMessenger.h"
 #include "messenger/backend/SMTPClient.h"
 #include <string>
@@ -16,5 +17,7 @@ private:
     SMTPClientPtr _smtpClient;
 
 };
+
+using EmailMessengerPtr = std::shared_ptr<EmailMessenger>;
 
 }

@@ -3,7 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include <string>
 
-namespace sentinel
+namespace core
 {
 
 inline

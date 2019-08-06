@@ -14,7 +14,7 @@ namespace sentinel
 class Sentinel
 {
 public:
-    using UpdateFunctor = std::function<void(const ITrackItem& item)>;
+    using UpdateFunctor = std::function<void(const ITrackItem&, bool)>;
 
     Sentinel(const UpdateFunctor& updateFunctor);
 

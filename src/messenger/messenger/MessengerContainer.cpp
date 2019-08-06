@@ -2,6 +2,7 @@
 
 #include "core/Config.h"
 #include "messenger/channels/EmailMessenger.h"
+#include "messenger/channels/SMSMessenger.h"
 
 namespace messenger
 {
@@ -28,7 +29,19 @@ MessengerContainer::setupEmailBackendFromConfig()
 void
 MessengerContainer::addEmailMessenger(const std::string& destination)
 {
+    if (!_smtpClient) {
+        setupEmailBackendFromConfig();
+    }
     _messengers.push_back(std::make_shared<EmailMessenger>(destination, _smtpClient));
+}
+
+void
+MessengerContainer::addSMSMessenger(const PhoneNumber& destination)
+{
+    if (!_smtpClient) {
+        setupEmailBackendFromConfig();
+    }
+    _messengers.push_back(std::make_shared<SMSMessenger>(destination, _smtpClient));
 }
 
 }

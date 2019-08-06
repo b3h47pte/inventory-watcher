@@ -22,21 +22,28 @@ int main(int argc, char** argv)
             ("interval", po::value<size_t>()->default_value(15), "Refresh interval in seconds.")
             ("vendor", po::value<std::vector<std::string>>()->required(), "Which vendor(s) to use to find the item.")
             ("item", po::value<std::string>(), "Which item to find on the vendor(s).")
-            ("email", po::value<std::vector<std::string>>(), "Email addresses to notify.");
+            ("email", po::value<std::vector<std::string>>(), "Email addresses to notify.")
+            ("sms", po::value<std::vector<std::string>>(), "Numbers to notify.");
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
 
         messenger::MessengerContainer messengers;
-        if (vm.count("email") > 0) {
-            messengers.setupEmailBackendFromConfig();
-            for (const auto& em : vm["email"].as<std::vector<std::string>>()) {
-                messengers.addEmailMessenger(em);
-            }
+        for (const auto& em : vm["email"].as<std::vector<std::string>>()) {
+            messengers.addEmailMessenger(em);
         }
 
-        sentinel::Sentinel sentinelObj([&messengers](const sentinel::ITrackItem& item){
+        for (const auto& sms : vm["sms"].as<std::vector<std::string>>()) {
+            messengers.addSMSMessenger(messenger::PhoneNumber(sms));
+        }
+
+        sentinel::Sentinel sentinelObj([&messengers](const sentinel::ITrackItem& item, bool isFirst){
+            if (!isFirst && !item.changedSinceLastUpdate()) {
+                std::cout << "Skipping item: " << item.name() << std::endl;
+                return;
+            }
+
             std::ostringstream msg;
             msg << item;
 
