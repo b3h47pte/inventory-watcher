@@ -1,0 +1,13 @@
+ADD_LIBRARY(core SHARED
+    core/Config.cpp
+    core/PlatformUtils.cpp)
+
+TARGET_INCLUDE_DIRECTORIES(core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${Boost_INCLUDE_DIRS})
+
+TARGET_LINK_LIBRARIES(core
+    ${Boost_LIBRARIES})
+
+INSTALL(TARGETS core
+        LIBRARY DESTINATION lib)

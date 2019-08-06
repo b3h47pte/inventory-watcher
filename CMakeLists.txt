@@ -21,10 +21,14 @@ SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Dependencies
 FIND_PACKAGE(Boost 1.70
              COMPONENTS program_options
+                        filesystem
+                        system
              REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 FIND_PACKAGE(openssl REQUIRED)
-
+FIND_PACKAGE(Poco REQUIRED
+             COMPONENTS Net
+                        NetSSL)
 FIND_PACKAGE(CEF REQUIRED)
 FIND_PACKAGE(PkgConfig REQUIRED)
 PKG_CHECK_MODULES(Gumbo REQUIRED IMPORTED_TARGET gumbo)
