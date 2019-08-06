@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         sentinel::Sentinel sentinelObj([&messengers](const sentinel::TrackItem& item, bool isFirst){
             if (!isFirst && !item.changedSinceLastUpdate()) {
                 std::cout << "Skipping item: " << item.name() << std::endl;
-                return;
+                return false;
             }
 
             std::ostringstream msg;
@@ -53,6 +53,7 @@ int main(int argc, char** argv)
             shortMsg << item.name() << "(" << item.stock() << ")";
             messengers.notify(msg.str(), shortMsg.str());
             std::cout << item << std::endl;
+            return false;
         });
 
         for (const auto& vendorName : vm["vendor"].as<std::vector<std::string>>()) {

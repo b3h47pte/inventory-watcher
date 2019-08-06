@@ -38,16 +38,28 @@ Sentinel::startTrackingItems(const std::chrono::milliseconds& updateIntervalMs, 
 }
 
 void
-Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs) const
+Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs)
 {
     bool isFirst = true;
-    while (true) {
+    while (true && !_items.empty()) {
         const auto start = std::chrono::steady_clock::now();
 
-        for (const auto& itemVendor : _items)
         {
-            itemVendor.second->updateItem(itemVendor.first, false);
-            _updateFunctor(*itemVendor.first, isFirst);
+            std::vector<size_t> indicesToRemove;
+            std::scoped_lock<std::shared_mutex> lock(_itemMutex);
+            for (size_t i = 0; i < _items.size(); ++i) {
+                const auto& itemVendor = _items[i];
+                itemVendor.second->updateItem(itemVendor.first, false);
+                const bool needsRemove = _updateFunctor(*itemVendor.first, isFirst);
+                if (needsRemove) {
+                    indicesToRemove.push_back(i);
+                }
+            }
+
+            for (auto it = indicesToRemove.crbegin(); 
+                    it != indicesToRemove.crend(); ++it) {
+                _items.erase(_items.begin() + *it);
+            }
         }
 
         const auto end = std::chrono::steady_clock::now();

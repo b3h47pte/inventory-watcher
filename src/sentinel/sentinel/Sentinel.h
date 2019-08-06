@@ -14,7 +14,7 @@ namespace sentinel
 class Sentinel
 {
 public:
-    using UpdateFunctor = std::function<void(const TrackItem&, bool)>;
+    using UpdateFunctor = std::function<bool(const TrackItem&, bool)>;
 
     Sentinel(const UpdateFunctor& updateFunctor);
 
@@ -23,7 +23,7 @@ public:
     void startTrackingItems(const std::chrono::milliseconds& updateIntervalMs, bool join);
 
 private:
-    void tick(const std::chrono::milliseconds& updateIntervalMs) const;
+    void tick(const std::chrono::milliseconds& updateIntervalMs);
 
     UpdateFunctor _updateFunctor;
     std::vector<std::pair<TrackItemPtr, IVendorPtr>> _items;
