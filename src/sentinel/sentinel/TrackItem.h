@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include "sentinel/backend/HTTPBackend.h"
 #include "sentinel/IVendorFwd.h"
 
 namespace sentinel
@@ -34,6 +35,7 @@ public:
     InventoryStock stock() const { return _stock; }
     VendorSource vendor() const { return _vendor; }
 
+    HTTPInstance& instance() const { return *_httpInstance; }
     void update(const TrackItemUpdate& update);
 
 private:
@@ -43,6 +45,7 @@ private:
     const std::string _url;
     std::string _name;
     InventoryStock _stock;
+    HTTPInstancePtr _httpInstance;
 };
 
 using TrackItemPtr = std::shared_ptr<TrackItem>;

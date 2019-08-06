@@ -2,8 +2,8 @@
 #include <condition_variable>
 #include <curl/curl.h>
 #include <include/wrapper/cef_library_loader.h>
-#include <future>
 #include "sentinel/backend/URI.h"
+#include "sentinel/backend/HTTPInstance.h"
 #include <string>
 #include <thread>
 
@@ -25,6 +25,8 @@ public:
     std::string escapeString(const std::string& inStr) const;
 
     std::string requestHTMLFromUri(const URI& uri) const;
+    std::string requestHTMLFromInstance(const HTTPInstance& instance) const;
+    HTTPInstancePtr createInstanceFromUri(const URI& uri) const;
 
 private:
     CURL* _curl;

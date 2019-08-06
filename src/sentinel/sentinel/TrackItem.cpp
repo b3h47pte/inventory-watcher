@@ -7,6 +7,7 @@ TrackItem::TrackItem(const std::string& url, const VendorSource vendor):
     _vendor(vendor),
     _url(url)
 {
+    _httpInstance = HTTPBackend::get().createInstanceFromUri(_url);
 }
 
 void

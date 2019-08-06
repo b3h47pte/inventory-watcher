@@ -1,12 +1,20 @@
+SET(ADDITIONAL_SRCS "")
+IF (APPLE)
+    SET(ADDITIONAL_SRCS ${ADDITIONAL_SRCS}
+        "sentinel/backend/MacHTTPBackend.mm")
+ENDIF()
+
 ADD_LIBRARY(sentinel SHARED
     sentinel/Sentinel.cpp
     sentinel/TrackItem.cpp
     sentinel/VendorFactory.cpp
     sentinel/backend/Constants.cpp
     sentinel/backend/HTTPBackend.cpp
+    sentinel/backend/HTTPInstance.cpp
     sentinel/backend/HTMLParser.cpp
     sentinel/backend/URI.cpp
-    sentinel/vendors/NeweggVendor.cpp)
+    sentinel/vendors/NeweggVendor.cpp
+    ${ADDITIONAL_SRCS})
 
 SET_LIBRARY_TARGET_PROPERTIES(sentinel)
 ADD_DEPENDENCIES(sentinel libcef_dll_wrapper)

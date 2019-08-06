@@ -1,96 +1,21 @@
 #include "sentinel/backend/HTTPBackend.h"
 
 #include <include/base/cef_bind.h>
-#ifdef __APPLE__
-#include <include/cef_application_mac.h>
-#endif
 #include <include/cef_app.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
-#include <include/wrapper/cef_closure_task.h>
-#include <include/wrapper/cef_helpers.h>
 #include <include/views/cef_browser_view.h>
 #include <include/views/cef_window.h>
 #include <iostream>
-
 #include <list>
+#ifdef __APPLE__
+#include "sentinel/backend/MacHTTPBackend.h"
+#endif
 
 namespace sentinel
 {
 namespace
 {
-
-class InternalBrowserHandler: public CefClient,
-                              public CefRenderHandler,
-                              public CefLoadHandler
-{
-public:
-    InternalBrowserHandler(std::promise<std::string>& result):
-        _result(result)
-    {}
-        
-    CefRefPtr<CefRenderHandler> GetRenderHandler() override
-    {
-        return this;
-    }
-
-    CefRefPtr<CefLoadHandler> GetLoadHandler() override
-    {
-        return this;
-    }
-
-    void OnPaint(
-        CefRefPtr<CefBrowser> browser,
-        CefRenderHandler::PaintElementType type,
-        const CefRenderHandler::RectList& dirtyRects,
-        const void* buffer,
-        int width,
-        int height) override
-    {
-    }
-
-    void GetViewRect(
-        CefRefPtr<CefBrowser> browser,
-        CefRect& rect) override
-    {
-        rect = CefRect(0, 0, 800, 600);
-    }
-
-    void OnLoadEnd(
-        CefRefPtr<CefBrowser> browser,
-        CefRefPtr<CefFrame> frame,
-        int httpStatusCode) override
-    {
-        if (!frame->IsMain()) {
-            return;
-        }
-
-        class HTMLVisitor: public CefStringVisitor
-        {
-        public:
-            HTMLVisitor(std::promise<std::string>& result):
-                _result(result)
-            {}
-
-            void Visit(const CefString& str) override
-            {
-                _result.set_value(str);
-            }
-
-        private:
-            IMPLEMENT_REFCOUNTING(HTMLVisitor);
-            std::promise<std::string>& _result;
-        };
-
-        CefRefPtr<HTMLVisitor> visitor(new HTMLVisitor(_result));
-        browser->GetMainFrame()->GetSource(visitor);
-    }
-
-private:
-    IMPLEMENT_REFCOUNTING(InternalBrowserHandler);
-
-    std::promise<std::string>& _result;
-};
 
 class InternalBrowserApp : public CefApp, public CefBrowserProcessHandler {
 public:
@@ -142,62 +67,35 @@ HTTPBackend::escapeString(const std::string& inStr) const
 std::string
 HTTPBackend::requestHTMLFromUri(const URI& uri) const
 {
-    std::promise<std::string> resultPromise;
-    std::future<std::string> futureResult = resultPromise.get_future();
+    const auto instance = createInstanceFromUri(uri);
+    return requestHTMLFromInstance(*instance);
+}
 
-    class RequestTask: public CefTask
-    {
-    public:
-        RequestTask(const URI& uri, std::promise<std::string>& result):
-            _uri(uri),
-            _result(result)
-        {}
+std::string
+HTTPBackend::requestHTMLFromInstance(const HTTPInstance& instance) const
+{
+    return instance.getResult();
+}
 
-        void Execute() override
-        {
-            CEF_REQUIRE_UI_THREAD();
-
-            // SimpleHandler implements browser-level callbacks.
-            CefRefPtr<InternalBrowserHandler> handler(new InternalBrowserHandler(_result));
-
-            // Specify CEF browser settings here.
-            CefWindowInfo info;
-            info.SetAsWindowless(nullptr);
-
-            CefBrowserSettings browserSettings;
-            CefBrowserHost::CreateBrowser(
-                info,
-                handler.get(),
-                _uri.uri(),
-                browserSettings,
-                nullptr,
-                nullptr);
-        }
-
-    private:
-        const URI& _uri;
-        std::promise<std::string>& _result;
-
-        IMPLEMENT_REFCOUNTING(RequestTask);
-        DISALLOW_COPY_AND_ASSIGN(RequestTask);
-    };
-
-    // Need to wait for the CEF message loop to start.
+HTTPInstancePtr
+HTTPBackend::createInstanceFromUri(const URI& uri) const
+{
     if (!_ready) {
         std::mutex m;
         std::unique_lock<std::mutex> lock(m);
         _readyCv.wait(lock);
     }
-
-    CefPostTask(TID_UI, new RequestTask(uri, resultPromise));
-    futureResult.wait();
-    return futureResult.get();
+    return std::make_shared<HTTPInstance>(uri);
 }
 
 HTTPBackend::HTTPBackend()
 {
     curl_global_init(CURL_GLOBAL_ALL);
     _curl = curl_easy_init();
+
+#ifdef __APPLE__
+    initializeMacApp();
+#endif
 }
 
 HTTPBackend::~HTTPBackend()

@@ -7,8 +7,6 @@
 #include "sentinel/backend/HTTPBackend.h"
 #include <sstream>
 
-#include <iostream>
-
 namespace sentinel
 {
 
@@ -16,6 +14,10 @@ TrackItemPtr
 NeweggVendor::findItemFromName(const std::string& name) const
 {
     const std::string itemUrl = findItemUrlFromSearchQuery(name);
+    if (itemUrl.empty()) {
+        return nullptr;
+    }
+
     auto item = std::make_shared<TrackItem>(itemUrl, source());
     updateItem(item, true);
     return item;
@@ -114,7 +116,8 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
     options.updateStock = true;
 
     try {
-        const std::string result = HTTPBackend::get().requestHTMLFromUri(item->uri());
+        item->instance().refresh();
+        const std::string result = HTTPBackend::get().requestHTMLFromInstance(item->instance());
         
         const HTMLParser parser(result);
 
@@ -157,8 +160,8 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
                     const std::string tmpName = createStringAttr(node->v.text.text);
                     update.changed = 
                         update.changed.value() ||
-                            !update.name.has_value() ||
-                            (tmpName != update.name.value());
+                            (update.name.has_value() &&
+                                (tmpName != update.name.value()));
                     update.name = tmpName;
                     ctxt.foundName = true;
                 } else if (ctxt.foundStockContainer && options.updateStock) {
@@ -172,8 +175,8 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
                     }
                     update.changed = 
                         update.changed.value() ||
-                            !update.stock.has_value() ||
-                            (tmpStock != update.stock.value());
+                            (update.stock.has_value() &&
+                                (tmpStock != update.stock.value()));
                     update.stock = tmpStock;
                     ctxt.foundStock = true;
                 }
