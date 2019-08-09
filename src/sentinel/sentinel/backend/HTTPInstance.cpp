@@ -8,6 +8,7 @@
 #include <include/wrapper/cef_closure_task.h>
 #include <include/wrapper/cef_helpers.h>
 #include <future>
+#include <iostream>
 #include <mutex>
 #include <thread>
 
@@ -127,12 +128,16 @@ public:
     std::string getResult() const;
     void displayBrowser();
 
+    using ExeCallback = HTTPInstance::ExeCallback;
+    void executeJavascript(const std::vector<std::string>& cmds, const ExeCallback& onSuccess, const ExeCallback& onFailure);
+
 private:
     void loadBrowser();
     void loadBrowserTask();
     void waitForBrowser() const;
 
     void displayBrowserTask();
+    void executeJavascriptTask(const std::vector<std::string>& cmds, const ExeCallback& onSuccess, const ExeCallback& onFailure);
 
     URI _uri;
     CefRefPtr<CefBrowser> _browser;
@@ -163,7 +168,7 @@ HTTPInstanceImpl::~HTTPInstanceImpl()
             void Execute() override
             {
                 CEF_REQUIRE_UI_THREAD();
-                //_browser->GetHost()->CloseBrowser(true);
+                _browser->GetHost()->CloseBrowser(true);
             }
 
         private:
@@ -277,6 +282,57 @@ HTTPInstanceImpl::displayBrowserTask()
     core::platformUtils::showWindow(_browser->GetHost()->GetWindowHandle());
 }
 
+void
+HTTPInstanceImpl::executeJavascript(
+    const std::vector<std::string>& cmds,
+    const ExeCallback& onSuccess,
+    const ExeCallback& onFailure)
+{
+    waitForBrowser();
+    struct JavascriptTask : CefTask
+    {
+        JavascriptTask(
+            HTTPInstanceImpl* impl,
+            const std::vector<std::string>& cmds,
+            const ExeCallback& onSuccess,
+            const ExeCallback& onFailure):
+            _impl(impl),
+            _cmds(cmds),
+            _onSuccess(onSuccess),
+            _onFailure(onFailure)
+        {}
+
+        void Execute() override
+        {
+            CEF_REQUIRE_UI_THREAD();
+            _impl->executeJavascriptTask(_cmds, _onSuccess, _onFailure);
+        }
+
+    private:
+        IMPLEMENT_REFCOUNTING(JavascriptTask);
+        HTTPInstanceImpl* _impl;
+
+        // Copy here to ensure they aren't out of scope at execution time.
+        std::vector<std::string> _cmds;
+        ExeCallback _onSuccess;
+        ExeCallback _onFailure;
+    };
+
+    CefPostTask(TID_UI, new JavascriptTask(this, cmds, onSuccess, onFailure));
+}
+
+void
+HTTPInstanceImpl::executeJavascriptTask(
+    const std::vector<std::string>& cmds,
+    const ExeCallback& onSuccess,
+    const ExeCallback& onFailure)
+{
+    CefRefPtr<CefFrame> frame = _browser->GetMainFrame();
+    for (const std::string& c : cmds) {
+        _browser->GetMainFrame()->ExecuteJavaScript(c, frame->GetURL(), 0);
+    }
+}
+
 HTTPInstance::HTTPInstance(const URI& uri)
 {
     _impl = std::make_shared<HTTPInstanceImpl>(uri);
@@ -298,6 +354,12 @@ void
 HTTPInstance::displayBrowser()
 {
     return _impl->displayBrowser();
+}
+
+void
+HTTPInstance::executeJavascript(const std::vector<std::string>& cmds, const ExeCallback& onSuccess, const ExeCallback& onFailure)
+{
+    _impl->executeJavascript(cmds, onSuccess, onFailure);
 }
 
 }

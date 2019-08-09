@@ -202,6 +202,18 @@ NeweggVendor::checkout(const TrackItemPtr& item) const
 
     // Don't need to wait for browser to display to start running Javascript so we can bring
     // the user to the checkout page.
+    inst.executeJavascript({
+        "var buttonElements = document.getElementsByClassName(\"call-to-action-main-product\")[0];", // Find the element that contains add to cart button
+        "buttonElements.children[0].click();",                                                       // Click the button
+        "var popupElements = document.getElementsByClassName(\"centerPopup-body\");",                // See if any popup shows up
+        "for (let ele of popupElements) { ele.children[0].click();  }",                              // Close popups if any
+        "location = \"https://secure.newegg.com/Shopping/ShoppingCart.aspx?Submit=view\";"           // Redirect to shopping cart
+    },
+    [](){
+    }, // On Success
+    [](){
+    } // On Failure
+    );
 }
 
 }
