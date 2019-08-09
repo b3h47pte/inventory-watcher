@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         sentinel::Sentinel sentinelObj([&messengers](const sentinel::TrackItemPtr& item, const sentinel::IVendorPtr& vendor, bool isFirst){
             if (!isFirst && !item->changedSinceLastUpdate()) {
                 std::cout << "Skipping item: " << item->name() << std::endl;
-                return false;
+                return;
             }
 
             std::ostringstream msg;
@@ -56,10 +56,9 @@ int main(int argc, char** argv)
 
             if (item->stock() == sentinel::InventoryStock::InStock) {
                 vendor->checkout(item);
-                return true;
             }
 
-            return false;
+            return;
         });
 
         for (const auto& vendorName : vm["vendor"].as<std::vector<std::string>>()) {

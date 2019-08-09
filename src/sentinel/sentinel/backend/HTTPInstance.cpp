@@ -1,6 +1,7 @@
 #include "sentinel/backend/HTTPInstance.h"
 
 #include <condition_variable>
+#include "core/PlatformUtils.h"
 #include <include/base/cef_bind.h>
 #include <include/cef_browser.h>
 #include <include/cef_client.h>
@@ -49,7 +50,7 @@ public:
         CefRefPtr<CefBrowser> browser,
         CefRect& rect) override
     {
-        rect = CefRect(0, 0, 800, 600);
+        rect = CefRect(0, 0, 1440, 900);
     }
 
     void OnLoadEnd(
@@ -124,11 +125,14 @@ public:
 
     void refresh();
     std::string getResult() const;
+    void displayBrowser();
 
 private:
     void loadBrowser();
     void loadBrowserTask();
     void waitForBrowser() const;
+
+    void displayBrowserTask();
 
     URI _uri;
     CefRefPtr<CefBrowser> _browser;
@@ -159,7 +163,7 @@ HTTPInstanceImpl::~HTTPInstanceImpl()
             void Execute() override
             {
                 CEF_REQUIRE_UI_THREAD();
-               // _browser->GetHost()->CloseBrowser(true);
+                //_browser->GetHost()->CloseBrowser(true);
             }
 
         private:
@@ -196,12 +200,11 @@ HTTPInstanceImpl::loadBrowser()
 void
 HTTPInstanceImpl::loadBrowserTask()
 {
+    _didLoad = false;
     _handler = new InternalBrowserHandler();
 
     // Specify CEF browser settings here.
     CefWindowInfo info;
-    info.SetAsWindowless(nullptr);
-
     CefBrowserSettings browserSettings;
     _browser = CefBrowserHost::CreateBrowserSync(
         info,
@@ -210,7 +213,7 @@ HTTPInstanceImpl::loadBrowserTask()
         browserSettings,
         nullptr,
         nullptr);
-
+    core::platformUtils::hideWindow(_browser->GetHost()->GetWindowHandle());
     _didLoad = true;
     _browserCv.notify_all();
 }
@@ -243,6 +246,37 @@ HTTPInstanceImpl::getResult() const
     return _handler->getResult();
 }
 
+void
+HTTPInstanceImpl::displayBrowser()
+{
+    waitForBrowser();
+    struct DisplayTask : CefTask
+    {
+        DisplayTask(HTTPInstanceImpl* impl):
+            _impl(impl)
+        {}
+
+        void Execute() override
+        {
+            CEF_REQUIRE_UI_THREAD();
+            _impl->displayBrowserTask();
+        }
+
+    private:
+        IMPLEMENT_REFCOUNTING(DisplayTask);
+        HTTPInstanceImpl* _impl;
+    };
+
+    CefPostTask(TID_UI, new DisplayTask(this));
+}
+
+void
+HTTPInstanceImpl::displayBrowserTask()
+{
+    _browser->GetHost()->SetFocus(true);
+    core::platformUtils::showWindow(_browser->GetHost()->GetWindowHandle());
+}
+
 HTTPInstance::HTTPInstance(const URI& uri)
 {
     _impl = std::make_shared<HTTPInstanceImpl>(uri);
@@ -258,6 +292,12 @@ std::string
 HTTPInstance::getResult() const
 {
     return _impl->getResult();
+}
+
+void
+HTTPInstance::displayBrowser()
+{
+    return _impl->displayBrowser();
 }
 
 }

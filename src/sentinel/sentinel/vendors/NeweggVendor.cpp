@@ -196,7 +196,12 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
 void
 NeweggVendor::checkout(const TrackItemPtr& item) const
 {
+    item->freezeForCheckout();
+    HTTPInstance& inst = item->instance();
+    inst.displayBrowser();
 
+    // Don't need to wait for browser to display to start running Javascript so we can bring
+    // the user to the checkout page.
 }
 
 }

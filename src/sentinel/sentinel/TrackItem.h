@@ -38,10 +38,14 @@ public:
     HTTPInstance& instance() const { return *_httpInstance; }
     void update(const TrackItemUpdate& update);
 
+    bool checkedOut() const { return _checkedOut; }
+    void freezeForCheckout() { _checkedOut = true; }
+
 private:
     const VendorSource _vendor;
     bool _valid{false};
     bool _changed{false};
+    bool _checkedOut{false};
     const std::string _url;
     std::string _name;
     InventoryStock _stock;

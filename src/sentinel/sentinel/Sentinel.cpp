@@ -45,23 +45,17 @@ Sentinel::tick(const std::chrono::milliseconds& updateIntervalMs)
         const auto start = std::chrono::steady_clock::now();
 
         {
-            std::vector<size_t> indicesToRemove;
             std::scoped_lock<std::shared_mutex> lock(_itemMutex);
             for (size_t i = 0; i < _items.size(); ++i) {
                 const auto& itemVendor = _items[i];
+                if (itemVendor.first->checkedOut()) {
+                    continue;
+                }
                 itemVendor.second->updateItem(itemVendor.first, false);
-                const bool needsRemove = _updateFunctor(
+                _updateFunctor(
                     itemVendor.first,
                     itemVendor.second,
                     isFirst);
-                if (needsRemove) {
-                    indicesToRemove.push_back(i);
-                }
-            }
-
-            for (auto it = indicesToRemove.crbegin(); 
-                    it != indicesToRemove.crend(); ++it) {
-                _items.erase(_items.begin() + *it);
             }
         }
 

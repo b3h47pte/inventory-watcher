@@ -14,6 +14,8 @@ public:
 
     void refresh();
     std::string getResult() const;
+    
+    void displayBrowser();
 
 private:
     std::shared_ptr<HTTPInstanceImpl> _impl;

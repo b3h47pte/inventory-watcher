@@ -117,7 +117,6 @@ HTTPBackend::initialize(int argc, char** argv)
 
     CefSettings cefSettings;
     cefSettings.command_line_args_disabled = true;
-    cefSettings.windowless_rendering_enabled = true;
 #ifndef CEF_USE_SANDBOX
     cefSettings.no_sandbox = true;
 #endif
