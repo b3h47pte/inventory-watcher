@@ -107,9 +107,11 @@ HTTPBackend::~HTTPBackend()
 void
 HTTPBackend::initialize(int argc, char** argv)
 {
+#ifdef __APPLE__
     if (!_cefLoader.LoadInMain()) {
         throw std::runtime_error("Failed to load CEF.");
     }
+#endif
 
     // Initialize CEF.
     CefMainArgs mainArgs(argc, argv);

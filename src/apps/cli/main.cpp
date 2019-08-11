@@ -1,4 +1,9 @@
 #include <boost/program_options.hpp>
+
+#ifndef __APPLE__
+#include <include/cef_app.h>
+#include <include/cef_command_line.h>
+#endif
 #include <iostream>
 #include <messenger/backend/SMTPClient.h>
 #include <messenger/channels/EmailMessenger.h>
@@ -14,6 +19,19 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
+#ifndef __APPLE__
+    CefMainArgs main_args(argc, argv);
+
+    // CEF applications have multiple sub-processes (render, plugin, GPU, etc)
+    // that share the same executable. This function checks the command-line and,
+    // if this is a sub-process, executes the appropriate logic.
+    int exit_code = CefExecuteProcess(main_args, NULL, NULL);
+    if (exit_code >= 0) {
+        // The sub-process has completed so return here.
+        return exit_code;
+    }
+#endif
+
     // Separate thread that deals with work as we'll block on CEF
     // when the HTTPBackend becomes initialized.
     std::thread workThread([argc, argv](){

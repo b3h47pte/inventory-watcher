@@ -118,6 +118,9 @@ NeweggVendor::updateItem(const TrackItemPtr& item, bool staticUpdate) const
     try {
         item->instance().refresh();
         const std::string result = HTTPBackend::get().requestHTMLFromInstance(item->instance());
+        if (result.empty()) {
+            throw std::runtime_error("Failed to get HTML for item.");
+        }
         
         const HTMLParser parser(result);
 

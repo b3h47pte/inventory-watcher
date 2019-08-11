@@ -30,6 +30,9 @@ TARGET_LINK_LIBRARIES(sentinel
     PkgConfig::Gumbo
     libcef_dll_wrapper
     ${CEF_STANDARD_LIBS})
+IF(UNIX)
+    TARGET_LINK_LIBRARIES(sentinel libcef_lib)
+ENDIF()
 
 INSTALL(TARGETS sentinel
         LIBRARY DESTINATION lib)

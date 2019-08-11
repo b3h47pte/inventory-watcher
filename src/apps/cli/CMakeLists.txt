@@ -14,14 +14,20 @@ IF(APPLE)
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist
     )
     CEF_CREATE_HELPERS(watchercli cefHelper.cpp ${CMAKE_CURRENT_SOURCE_DIR}/mac/helper-Info.plist)
-
+ELSE()
+    ADD_EXECUTABLE(watchercli main.cpp)
 ENDIF()
 SET_EXECUTABLE_TARGET_PROPERTIES(watchercli)
 ADD_DEPENDENCIES(watchercli libcef_dll_wrapper)
 
-TARGET_LINK_LIBRARIES(watchercli messenger sentinel ${Boost_LIBRARIES} libcef_dll_wrapper ${CEF_STANDARD_LIBS})
+TARGET_LINK_LIBRARIES(watchercli
+    messenger
+    sentinel
+    ${Boost_LIBRARIES}
+    libcef_dll_wrapper
+    ${CEF_STANDARD_LIBS})
 
 TARGET_INCLUDE_DIRECTORIES(watchercli PRIVATE 
     $<TARGET_PROPERTY:sentinel,INTERFACE_INCLUDE_DIRECTORIES>
     ${Boost_INCLUDE_DIRS})
-INSTALL_TARGET_APP(watchercli ${RESOURCES} ${RESOURCE_PREFIX})
+INSTALL_TARGET_APP(watchercli "${RESOURCES}" "${RESOURCE_PREFIX}")

@@ -1,7 +1,9 @@
 #pragma once
 #include <condition_variable>
 #include <curl/curl.h>
+#ifdef __APPLE__
 #include <include/wrapper/cef_library_loader.h>
+#endif
 #include "sentinel/backend/URI.h"
 #include "sentinel/backend/HTTPInstance.h"
 #include <string>
@@ -30,7 +32,10 @@ public:
 
 private:
     CURL* _curl;
+
+#ifdef __APPLE__
     CefScopedLibraryLoader _cefLoader;
+#endif
 
     mutable std::condition_variable _readyCv;
     bool _ready{false};

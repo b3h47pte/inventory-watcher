@@ -218,7 +218,7 @@ HTTPInstanceImpl::loadBrowserTask()
         browserSettings,
         nullptr,
         nullptr);
-    core::platformUtils::hideWindow(_browser->GetHost()->GetWindowHandle());
+    core::platformUtils::hideWindow((void*)_browser->GetHost()->GetWindowHandle());
     _didLoad = true;
     _browserCv.notify_all();
 }
@@ -279,7 +279,7 @@ void
 HTTPInstanceImpl::displayBrowserTask()
 {
     _browser->GetHost()->SetFocus(true);
-    core::platformUtils::showWindow(_browser->GetHost()->GetWindowHandle());
+    core::platformUtils::showWindow((void*)_browser->GetHost()->GetWindowHandle());
 }
 
 void
